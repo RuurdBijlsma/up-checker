@@ -1,11 +1,16 @@
 import fs from 'fs';
-import net from 'net';
 import ApiModule from "../ApiModule";
 import ping from 'tcp-ping';
+import credentials from '../../res/credentials'
+import Telegram from "./Telegram";
 
 export default class UpCheckerModule extends ApiModule {
     constructor() {
         super();
+
+        this.telegram = new Telegram();
+        this.telegram.setToken(credentials.token);
+
         this.data = {
             today: '',
             todayRecords: 0,
@@ -124,7 +129,15 @@ export default class UpCheckerModule extends ApiModule {
             let {up} = pings[i];
             let todayUp = endpoint.upTimes[endpoint.upTimes.length - 1];
             let newUp = data.todayRecords * todayUp.up + up;
-            todayUp.up = newUp / (data.todayRecords+1);
+            todayUp.up = newUp / (data.todayRecords + 1);
+            if (endpoint.up && !up) {
+                console.log(`${endpoint.name} WENT DOWN! SENDING TELEGRAM MESSAGE!`);
+                this.telegram.sendMessage(`😱 ${endpoint.name} is down! 😱`, credentials.chatId);
+            }
+            if (!endpoint.up && up) {
+                console.log(`${endpoint.name} IS BACK UP! SENDING TELEGRAM MESSAGE!`);
+                this.telegram.sendMessage(`👌 ${endpoint.name} is up! 👌`, credentials.chatId);
+            }
             endpoint.up = up;
         }
         data.todayRecords++;
