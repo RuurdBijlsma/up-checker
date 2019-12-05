@@ -14,6 +14,7 @@ export default class UpCheckerModule extends ApiModule {
         this.data = {
             today: '',
             todayRecords: 0,
+            historyLength: 7,
             endpoints: [
                 {
                     name: 'NGINX Server',
@@ -121,6 +122,10 @@ export default class UpCheckerModule extends ApiModule {
                 endpoint.upTimes.push({
                     date, up: 1
                 });
+                if (endpoint.upTimes.length > data.historyLength) {
+                    endpoint.upTimes.splice(0, 1);
+                    //Remove oldest data
+                }
             });
         }
 
