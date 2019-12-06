@@ -15,7 +15,6 @@
     "cors": "^2.8.5",
     "express": "^4.17.1",
     "node-fetch": "^2.6.0",
-    "tcp-ping": "^0.1.1",
-    "telegram-bot-api": "^1.3.3"
+    "tcp-ping": "^0.1.1"
   }
 }
