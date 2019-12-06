@@ -57,7 +57,7 @@ export default class UpCheckerModule extends ApiModule {
     }
 
     setRoutes(app) {
-        app.get('/uptime/', async (req, res) => {
+        app.get('/', async (req, res) => {
             res.send(this.data);
         });
     }
