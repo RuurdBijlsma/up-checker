@@ -1,8 +1,8 @@
 import fs from 'fs';
-import ApiModule from "../ApiModule";
+import ApiModule from "../ApiModule.mjs";
 import ping from 'tcp-ping';
-import credentials from '../../res/credentials'
-import Telegram from "./Telegram";
+import credentials from '../../res/credentials.json'
+import Telegram from "./Telegram.mjs";
 
 export default class UpCheckerModule extends ApiModule {
     constructor() {
@@ -10,6 +10,8 @@ export default class UpCheckerModule extends ApiModule {
 
         this.telegram = new Telegram();
         this.telegram.setToken(credentials.token);
+
+        this.telegram.sendMessage("Hello world")
 
         this.data = {
             today: '',
@@ -34,6 +36,34 @@ export default class UpCheckerModule extends ApiModule {
                     name: 'Content Management System',
                     url: '80.114.182.230',
                     port: 4040,
+                    upTimes: [],
+                    up: true,
+                },
+                {
+                    name: 'Plex',
+                    url: '80.114.182.230',
+                    port: 32400,
+                    upTimes: [],
+                    up: true,
+                },
+                {
+                    name: 'Sonarr',
+                    url: '80.114.182.230',
+                    port: 8989,
+                    upTimes: [],
+                    up: true,
+                },
+                {
+                    name: 'Radarr',
+                    url: '80.114.182.230',
+                    port: 7878,
+                    upTimes: [],
+                    up: true,
+                },
+                {
+                    name: 'Deluge',
+                    url: '80.114.182.230',
+                    port: 8112,
                     upTimes: [],
                     up: true,
                 },
@@ -109,6 +139,8 @@ export default class UpCheckerModule extends ApiModule {
     async checkEndpoints(data) {
         let endpoints = data.endpoints;
         let pings = await Promise.all(endpoints.map(e => this.singlePing(e)));
+        let downEndpoints = [];
+        let upEndpoints = [];
 
         let date = new Date().toLocaleDateString();
         if (data.today !== date) {
@@ -137,14 +169,27 @@ export default class UpCheckerModule extends ApiModule {
             todayUp.up = newUp / (data.todayRecords + 1);
             if (endpoint.up && !up) {
                 console.log(`${endpoint.name} WENT DOWN! SENDING TELEGRAM MESSAGE!`);
-                this.telegram.sendMessage(`😱 ${endpoint.name} is down! 😱`, credentials.chatId);
+                downEndpoints.push(endpoint.name);
             }
             if (!endpoint.up && up) {
                 console.log(`${endpoint.name} IS BACK UP! SENDING TELEGRAM MESSAGE!`);
-                this.telegram.sendMessage(`👌 ${endpoint.name} is up! 👌`, credentials.chatId);
+                upEndpoints.push(endpoint.name);
             }
             endpoint.up = up;
         }
+        let statusText = '';
+        if (upEndpoints.length > 0 || downEndpoints.length > 0)
+            statusText = 'Server status change:\n';
+        if (upEndpoints.length > 0) {
+            statusText += '\n👌UP👌UP👌UPup👌:\n\n';
+            statusText += upEndpoints.join('\n');
+        }
+        if (downEndpoints.length > 0) {
+            statusText += '\n😱DOWN😱DOWN😱DOWN😱:\n\n';
+            statusText += downEndpoints.join('\n');
+        }
+        if (statusText.length > 0)
+            this.telegram.sendMessage(statusText, credentials.chatId);
         data.todayRecords++;
         this.exportEndpoints(data);
     }

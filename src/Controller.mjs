@@ -4,7 +4,7 @@ import http from "http";
 import bodyParser from "body-parser";
 import cors from "cors";
 import fs from 'fs';
-import UpCheckerModule from "./up-checker/UpCheckerModule";
+import UpCheckerModule from "./up-checker/UpCheckerModule.mjs";
 
 
 class Controller {
