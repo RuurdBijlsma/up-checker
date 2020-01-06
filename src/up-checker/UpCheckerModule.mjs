@@ -4,6 +4,8 @@ import ping from 'tcp-ping';
 import credentials from '../../res/credentials.json'
 import Telegram from "./Telegram.mjs";
 
+import domainPing from "domain-ping";
+
 export default class UpCheckerModule extends ApiModule {
     constructor() {
         super();
@@ -19,71 +21,48 @@ export default class UpCheckerModule extends ApiModule {
             historyLength: 7,
             endpoints: [
                 {
-                    name: 'NGINX Server',
-                    url: '80.114.182.230',
-                    port: 443,
+                    name: 'Github Pages',
+                    url: 'ruurd.dev',
                     upTimes: [],
                     up: true,
                 },
                 {
                     name: 'API Server',
-                    url: '80.114.182.230',
-                    port: 3000,
-                    upTimes: [],
-                    up: true,
-                },
-                {
-                    name: 'Content Management System',
-                    url: '80.114.182.230',
-                    port: 4040,
+                    url: 'api.ruurd.dev',
                     upTimes: [],
                     up: true,
                 },
                 {
                     name: 'Plex',
-                    url: '80.114.182.230',
-                    port: 32400,
+                    url: 'plex.ruurd.dev',
                     upTimes: [],
                     up: true,
                 },
                 {
                     name: 'Sonarr',
-                    url: '80.114.182.230',
-                    port: 8989,
+                    url: 'sonarr.ruurd.dev',
                     upTimes: [],
                     up: true,
                 },
                 {
                     name: 'Radarr',
-                    url: '80.114.182.230',
-                    port: 7878,
+                    url: 'radarr.ruurd.dev',
                     upTimes: [],
                     up: true,
                 },
                 {
                     name: 'Deluge',
-                    url: '80.114.182.230',
-                    port: 8112,
+                    url: 'deluge.ruurd.dev',
                     upTimes: [],
                     up: true,
                 },
             ]
         };
 
-        this.today = '';
-        this.historyFile = 'history.json';
         this.checkInterval = 2000;
-
-        fs.access(this.historyFile, fs.constants.R_OK, async err => {
-            if (err) {
-                console.log("Creating file: " + this.historyFile);
-                this.exportEndpoints(this.data);
-            } else {
-                console.log("Importing from file: " + this.historyFile);
-                this.data = await this.importEndpoints();
-            }
-            this.startChecking();
-        });
+        setInterval(() => {
+            this.checkEndpoints(this.data);
+        }, this.checkInterval);
     }
 
     setRoutes(app) {
@@ -92,33 +71,16 @@ export default class UpCheckerModule extends ApiModule {
         });
     }
 
-    importEndpoints() {
-        return new Promise((resolve, reject) => {
-            fs.readFile(this.historyFile, (err, fileText) => {
-                if (err) console.warn(err);
-                try {
-                    let data = JSON.parse(fileText.toString());
-                    resolve(data);
-                } catch (e) {
-                    reject(e);
-                }
-            });
-        });
-    }
+    async singlePing(endpoint) {
+        try {
+            let response = await domainPing(endpoint.url);
+            return {up: response.ping};
+        } catch (e) {
+            console.warn(e);
+            return {up: false};
+        }
 
-    exportEndpoints(data) {
-        fs.writeFile(this.historyFile, JSON.stringify(data), {flag: 'w'}, err => {
-            if (err) console.warn(err);
-        });
-    }
 
-    startChecking() {
-        console.log("Initializing");
-        this.checkEndpoints(this.data);
-        setInterval(() => this.checkEndpoints(this.data), this.checkInterval);
-    }
-
-    singlePing(endpoint) {
         return new Promise((resolve, reject) => {
             ping.ping({
                 address: endpoint.url,
@@ -131,7 +93,7 @@ export default class UpCheckerModule extends ApiModule {
                 if (isNaN(data.avg))
                     resolve({up: false});
                 else
-                    resolve({up: true, ping: data.avg});
+                    resolve({up: true});
             })
         })
     }
@@ -149,7 +111,7 @@ export default class UpCheckerModule extends ApiModule {
 
             endpoints.forEach(endpoint => {
                 //Remove oldest day;
-                endpoint.upTimes.splice(0, 1);
+                // endpoint.upTimes.splice(0, 1);
                 //Add today
                 endpoint.upTimes.push({
                     date, up: 1
@@ -191,6 +153,5 @@ export default class UpCheckerModule extends ApiModule {
         if (statusText.length > 0)
             this.telegram.sendMessage(statusText, credentials.chatId);
         data.todayRecords++;
-        this.exportEndpoints(data);
     }
 }
